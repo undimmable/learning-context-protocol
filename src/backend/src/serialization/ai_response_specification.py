@@ -1,6 +1,6 @@
 from typing import override, Protocol
 
-from src.backend.util.util import split_lines
+from src.backend.src.util.util import split_lines
 
 
 class TokenizationError(Exception):
