@@ -1,19 +1,19 @@
 from unittest import TestCase
 
-from src.backend.src.serialization.ai_response_specification import (
-    AIResponseTokenizer,
-    AIResponseTokenSpecification,
-    UnspecifiedAIResponseTokenSpecification,
+from serialization.ai_response_tokenizer import AIResponseTypedToken
+from src.backend.src.serialization.ai_response_tokenizer import (
+    AIResponseTypedTokenizer,
     AIResponseToken,
     UnspecifiedAIResponseToken,
-    TokenizationError,
-    TokenizedAIResponse, Token,
+    UnspecifiedAIResponseTypedToken,
+    TypedTokenizationError,
+    TypedAIResponse, TypedToken,
 )
 
 
 class TestAIResponseTokenizer(TestCase):
     def setUp(self):
-        self.tokenizer = AIResponseTokenizer()
+        self.tokenizer = AIResponseTypedTokenizer()
 
     def test_get_prompt_includes_all_token_specs(self):
         prompt = self.tokenizer.get_prompt()
@@ -36,15 +36,15 @@ class TestAIResponseTokenizer(TestCase):
 
     def test_find_spec_returns_unspecified_for_unmatched_line(self):
         spec = self.tokenizer.find_spec("This line doesn't start with a known token:")
-        self.assertIsInstance(spec, UnspecifiedAIResponseTokenSpecification)
+        self.assertIsInstance(spec, UnspecifiedAIResponseToken)
 
     def test_find_spec_raises_tokenization_error_for_unknown_and_no_unspecified(self):
         # Create a tokenizer without an unspecified token spec
-        tokenizer = AIResponseTokenizer()
+        tokenizer = AIResponseTypedTokenizer()
         tokenizer.token_specs = [
-            AIResponseTokenSpecification("plan", False),
+            AIResponseToken("plan", False),
         ]
-        with self.assertRaises(TokenizationError):
+        with self.assertRaises(TypedTokenizationError):
             tokenizer.find_spec("unknownline: data")
 
     def test_tokenize_line_returns_token_with_correct_name_and_value(self):
@@ -56,26 +56,26 @@ class TestAIResponseTokenizer(TestCase):
     def test_tokenize_splits_lines_and_tokenizes_each(self):
         raw_response = "PLAN: step 1\nSTATE: ready\nNOTE: optional info\nMISC: extra"
         tokenized = self.tokenizer.tokenize(raw_response)
-        self.assertIsInstance(tokenized, TokenizedAIResponse)
-        self.assertEqual(len(tokenized.tokens), 4)
-        names = [token.get_name() for token in tokenized.tokens]
+        self.assertIsInstance(tokenized, TypedAIResponse)
+        self.assertEqual(len(tokenized.typed_tokens), 4)
+        names = [token.get_name() for token in tokenized.typed_tokens]
         self.assertIn("plan", names)
         self.assertIn("state", names)
         self.assertIn("note", names)
         self.assertIn(None, names)  # for unspecified token, name is None
 
     def test_AIResponseTokenSpecification_accepts_method(self):
-        spec = AIResponseTokenSpecification("test", False)
+        spec = AIResponseToken("test", False)
         self.assertTrue(spec.accepts("TEST: some value"))
         self.assertFalse(spec.accepts("NOTTEST: some value"))
 
     def test_AIResponseTokenSpecification_as_partial_prompt_and_readable_line(self):
-        spec = AIResponseTokenSpecification("test", optional=True)
+        spec = AIResponseToken("test", optional=True)
         # partial prompt includes (if any)
         partial_prompt = spec.as_partial_prompt()
         self.assertIn("(if any)", partial_prompt)
         # readable line includes token's value plus " + \n"
-        class DummyToken(Token):
+        class DummyToken(TypedToken):
             def get_value(self):
                 return "value"
 
@@ -85,14 +85,14 @@ class TestAIResponseTokenizer(TestCase):
         self.assertIn("+ \n", line)
 
     def test_UnspecifiedAIResponseTokenSpecification_singleton_and_methods(self):
-        spec1 = UnspecifiedAIResponseTokenSpecification()
-        spec2 = UnspecifiedAIResponseTokenSpecification()
+        spec1 = UnspecifiedAIResponseToken()
+        spec2 = UnspecifiedAIResponseToken()
         self.assertIs(spec1, spec2)
 
         partial_prompt = spec1.as_partial_prompt()
         self.assertEqual(partial_prompt, "")
 
-        class DummyToken(Token):
+        class DummyToken(TypedToken):
             def get_value(self):
                 return "some value"
 
@@ -101,25 +101,25 @@ class TestAIResponseTokenizer(TestCase):
         self.assertEqual(readable, "some value\n")
 
         token_obj = spec1.tokenize_line("random line")
-        self.assertIsInstance(token_obj, UnspecifiedAIResponseToken)
+        self.assertIsInstance(token_obj, UnspecifiedAIResponseTypedToken)
 
         self.assertTrue(spec1.accepts("anything"))
 
     def test_AIResponseToken_getters_and_value_formatting(self):
-        spec = AIResponseTokenSpecification("example")
-        token = AIResponseToken(spec, "line content")
+        spec = AIResponseToken("example")
+        token = AIResponseTypedToken(spec, "line content")
         self.assertEqual(token.get_name(), "example")
         self.assertEqual(token.get_value(), "line content\n")
 
     def test_UnspecifiedAIResponseToken_str_and_get_value(self):
-        spec = UnspecifiedAIResponseTokenSpecification()
-        token = UnspecifiedAIResponseToken(spec, "value line")
+        spec = UnspecifiedAIResponseToken()
+        token = UnspecifiedAIResponseTypedToken(spec, "value line")
         self.assertEqual(token.get_value(), "value line\n")
         self.assertIn("value line\n", str(token))
 
     def test_TokenizedAIResponse_add_token_and_tokens_list(self):
-        tokenized = TokenizedAIResponse()
-        spec = AIResponseTokenSpecification("test")
-        token = AIResponseToken(spec, "val")
-        tokenized.add_token(token)
-        self.assertIn(token, tokenized.tokens)
+        tokenized = TypedAIResponse()
+        spec = AIResponseToken("test")
+        token = AIResponseTypedToken(spec, "val")
+        tokenized.add_typed_token(token)
+        self.assertIn(token, tokenized.typed_tokens)

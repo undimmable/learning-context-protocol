@@ -1,0 +1,3 @@
+{"text": "Added on-device google/flan-t5-small LLM support to MCP server (endpoints /llm/generate and LLM-backed /shell).", "tags": ["update", "mcp", "llm"], "timestamp": "2025-05-19T00:27:43.065240Z"}
+{"text": "RCI (Reflexive Cognitive Interface) protocol added: interactive reflection architecture (EPM, BDL, MSR, ERL, MTA). Serves as cognitive layer between AGI and human.", "tags": ["context", "rci"], "timestamp": "2025-05-19T14:20:56.138548Z"}
+{"text": "google/flan-t5-small currently used in MCP is static; it does NOT learn from interactions unless we explicitly fine-tune or swap the model. Persistent learning is handled via separate JSONL memory store for context, not model weights.", "tags": ["context", "llm"], "timestamp": "2025-05-19T14:20:56.138853Z"}

@@ -1,6 +1,4 @@
 from unittest import TestCase
-import datetime
-import re
 
 from src.backend.src.util.util import split_lines, timestamp_string
 
