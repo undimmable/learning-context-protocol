@@ -30,6 +30,10 @@ import difflib as _difflib
 import json as _json
 import os as _os
 import pathlib as _pl
+# NOTE: we switch from the JSONL-based `_MemoryStore` to a fully relational
+# backend powered by SQLAlchemy/Postgres.  The public interface remains
+# identical so the surrounding FastAPI routes do not change.
+
 from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException
@@ -73,50 +77,14 @@ _HAVE_TRANSFORMERS = True  # Will be revised in `_get_llm` if import fails.
 app = FastAPI(title="MCP Server with Memory", version="0.1.0")
 
 # ---------------------------------------------------------------------------
-# Helper – persistent memory store (JSONL file)
+# Persistent memory store – now backed by a relational database.
 # ---------------------------------------------------------------------------
 
-class _MemoryStore:
-    """Simple persistent memory store using a JSONL file."""
+from src.db.memory_store import MemoryStore as _DBMemoryStore  # noqa: E402 – after sys path
 
-    def __init__(self, file_path="memory.jsonl"):
-        """Initialize the memory store with the given file path."""
-        self.file_path = _pl.Path(file_path)
-        self._entries = []
-        self._load()
-
-    def _load(self):
-        """Load entries from the JSONL file."""
-        if not self.file_path.exists():
-            self._entries = []
-            return
-
-        self._entries = []
-        with open(self.file_path, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if line:  # Skip empty lines
-                    try:
-                        entry = _json.loads(line)
-                        self._entries.append(entry)
-                    except _json.JSONDecodeError:
-                        # Skip invalid JSON lines
-                        pass
-
-    def append(self, entry):
-        """Append a new entry to the memory store and persist it."""
-        self._entries.append(entry)
-
-        # Append to the file
-        with open(self.file_path, "a", encoding="utf-8") as f:
-            f.write(_json.dumps(entry) + "\n")
-
-    def all(self):
-        """Return all entries in the memory store."""
-        return self._entries
-
-# Initialize the memory store
-_memory_store = _MemoryStore(_pl.Path(__file__).parent / "memory.jsonl")
+# Initialize once at import time – cheap and thread-safe thanks to
+# SQLAlchemy's connection pooling.
+_memory_store = _DBMemoryStore()
 
 # ---------------------------------------------------------------------------
 # Helper – lightweight wrapper around google/flan-t5-small
