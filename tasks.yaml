@@ -1,0 +1,6 @@
+instructions:
+  - Replace TODO in the ticket with DONE when you finished with the task.
+tasks:
+  1: [TODO] Fix _memory_store not initialized error in the MCP Server (see tools and providers).
+  2: [TODO] Implementing the MCP Server memory from jsonl, to the postgres DB. Use DB migrations to create the tables. Use SQLAlchemy as postgres provider and alembic for DB migrations.
+  3: [TODO] Prioritize the todo list in available-tools-and-providers.md by the order of implementation. Write tickets in this file to implement the top priority tool with the overview of the tool using the language that is clear for you to understand.
