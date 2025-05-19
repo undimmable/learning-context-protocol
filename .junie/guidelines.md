@@ -49,7 +49,7 @@ building and interacting with the system.
    styles.
 
 ## Integration-Driven Development Guidelines
-This is outlined in the file [IntegrationDrivenDevelopment](./../integration-driven-development.md).
+There is an exactly right amount of information about roles switching and integration of learning as an AGI-human in [IntegrationDrivenDevelopment](./../integration-driven-development.md).
 
 ## Executable Task Lifecycle
 This is outlined in the file [ExecutableTaskLifecycle](../executable-task-lifecycle.md).
@@ -59,6 +59,12 @@ This is outlined in the file [AvailableToolsAndProviders](../available-tools-and
 
 ## Reflexive Cognitive Interface
 This is outlined in the file [ReflexiveCognitiveInterface](../reflexive-cognitive-interface.md).
+
+## Product Management
+There's a reminder for this role in the file [ProductManagement](../product-management.yaml).
+
+## Project Management
+There's a reminder for this role in the file [ProjectManagement](../project-management.yaml).
 
 ## Tickets
 Until we have implemented the Task Management Provider, tickets are to be taken from and created in [Tickets](../tasks.yaml).
