@@ -76,11 +76,11 @@ def init_db() -> None:
     import importlib
     import pkgutil
 
-    # Import *all* modules inside ``src.backend.src.db.model`` so the ORM knows
+    # Import *all* modules inside ``src.db.model`` so the ORM knows
     # about every mapped class when ``Base.metadata.create_all`` is executed.
     from pathlib import Path
 
-    models_pkg = "src.backend.src.db.model"
+    models_pkg = "src.db.model"
 
     for _, modname, _ in pkgutil.walk_packages(
         [str(Path(__file__).parent / "model")], prefix=f"{models_pkg}."

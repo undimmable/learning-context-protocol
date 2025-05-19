@@ -1,6 +1,6 @@
 from typing import override
 
-from src.backend.src.util.util import split_lines
+from src.util.util import split_lines
 from tokenizer import TypedTokenizerSpecification, TypedToken, TypedTokenizationError
 
 

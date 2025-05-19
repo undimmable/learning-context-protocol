@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from src.backend.src.util.util import split_lines, timestamp_string
+from src.util.util import split_lines, timestamp_string
 
 
 class TestUtil(TestCase):
