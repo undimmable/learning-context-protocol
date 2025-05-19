@@ -1,7 +1,6 @@
 from unittest import TestCase
 
-from serialization.ai_response_tokenizer import AIResponseTypedToken
-from src.backend.src.serialization.ai_response_tokenizer import (
+from src.serialization.ai_response_tokenizer import (
     AIResponseTypedTokenizer,
     AIResponseToken,
     UnspecifiedAIResponseToken,

@@ -26,29 +26,25 @@ dependencies or need for an embedding model.
 from __future__ import annotations
 
 import datetime as _dt
-import json as _json
-import pathlib as _pl
-import subprocess as _sp
 import difflib as _difflib
+import json as _json
+import os as _os
+import pathlib as _pl
 from typing import List, Optional
-
-# ---------------------------------------------------------------------------
-# Imports
-# ---------------------------------------------------------------------------
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
+# ---------------------------------------------------------------------------
+# Imports
+# ---------------------------------------------------------------------------
 # Optional heavyweight imports (LLM).  We import lazily so that the server
 # can still start instantly even if the transformers stack is not yet pulled
 # into the environment.  The first call that actually needs the model will
 # trigger the download / load.
-
 # ---------------------------------------------------------------------------
 # Runtime env tweaks – keep big numeric libs constrained for sandbox safety.
 # ---------------------------------------------------------------------------
-
-import os as _os
 
 # Avoid OpenMP / MKL creating shared memory segments that might be disallowed
 # inside restricted environments (e.g. some container sandboxes or CI run
@@ -77,50 +73,50 @@ _HAVE_TRANSFORMERS = True  # Will be revised in `_get_llm` if import fails.
 app = FastAPI(title="MCP Server with Memory", version="0.1.0")
 
 # ---------------------------------------------------------------------------
-# Helper – persistent memory store (SQLite via SQLAlchemy)
+# Helper – persistent memory store (JSONL file)
 # ---------------------------------------------------------------------------
 
+class _MemoryStore:
+    """Simple persistent memory store using a JSONL file."""
 
-from sqlalchemy import (
-    create_engine as _create_engine,
-    Column as _Column,
-    Integer as _Integer,
-    String as _String,
-    DateTime as _DateTime,
-    select as _select,
-)
-from sqlalchemy.orm import declarative_base as _declarative_base, Session as _Session
+    def __init__(self, file_path="memory.jsonl"):
+        """Initialize the memory store with the given file path."""
+        self.file_path = _pl.Path(file_path)
+        self._entries = []
+        self._load()
 
+    def _load(self):
+        """Load entries from the JSONL file."""
+        if not self.file_path.exists():
+            self._entries = []
+            return
 
-_Base = _declarative_base()
+        self._entries = []
+        with open(self.file_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line:  # Skip empty lines
+                    try:
+                        entry = _json.loads(line)
+                        self._entries.append(entry)
+                    except _json.JSONDecodeError:
+                        # Skip invalid JSON lines
+                        pass
 
+    def append(self, entry):
+        """Append a new entry to the memory store and persist it."""
+        self._entries.append(entry)
 
-class _MemoryEntry(_Base):
-    __tablename__ = "memory_entries"
+        # Append to the file
+        with open(self.file_path, "a", encoding="utf-8") as f:
+            f.write(_json.dumps(entry) + "\n")
 
-    id: int = _Column(_Integer, primary_key=True, autoincrement=True)
-    text: str = _Column(_String, nullable=False)
-    tags: str | None = _Column(_String)  # Comma-separated list
-    timestamp: _dt.datetime = _Column(_DateTime, nullable=False)
+    def all(self):
+        """Return all entries in the memory store."""
+        return self._entries
 
-    def as_dict(self) -> dict:
-        return {
-            "id": self.id,
-            "text": self.text,
-            "tags": [] if self.tags is None else self.tags.split(","),
-            "timestamp": self.timestamp.isoformat() + "Z",
-        }
-
-
-_ENGINE = _create_engine("sqlite:///memory.sqlite", future=True, echo=False)
-_Base.metadata.create_all(_ENGINE)
-
-
-def _db_session():
-    """Yield an SQLAlchemy session (context manager style)."""
-
-    with _Session(_ENGINE) as session:
-        yield session
+# Initialize the memory store
+_memory_store = _MemoryStore(_pl.Path(__file__).parent / "memory.jsonl")
 
 # ---------------------------------------------------------------------------
 # Helper – lightweight wrapper around google/flan-t5-small
@@ -332,4 +328,3 @@ def llm_generate(req: LLMGenerateArgs):
         raise HTTPException(status_code=500, detail=str(exc))
 
     return {"generated_text": out_text}
-
