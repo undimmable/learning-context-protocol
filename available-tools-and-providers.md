@@ -10,5 +10,6 @@
 10. [TODO] Task Management Provider: http://localhost:8007
 11. [TODO] Personal Development Provider: http://localhost:8008
 
+You can use docker-compose to run the required dependencies e.g., to implement a vector database provider, you'll need a weaviate, chroma or qdrant docker images. You choose.
 
 [//]: # there we stop for now, everything else is for the next iteration()
