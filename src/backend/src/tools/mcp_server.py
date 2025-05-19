@@ -17,10 +17,9 @@ durable, cross-session "memory" for the assistant:
 2. POST /memory/query  – retrieve up to `top_k` snippets most similar to a
    query string.
 
-The memory is kept in a newline-delimited JSON file `memory.jsonl` in the
-working directory.  A very lightweight similarity measure based on
-`difflib.SequenceMatcher` is used so the server has no external
-dependencies or need for an embedding model.
+The memory is stored in a PostgreSQL database (or SQLite for development).
+A very lightweight similarity measure based on `difflib.SequenceMatcher` is used
+so the server has no external dependencies or need for an embedding model.
 """
 
 from __future__ import annotations
@@ -235,7 +234,7 @@ def memory_upsert(req: MemoryUpsertArgs):
     entry = {
         "text": req.text,
         "tags": req.tags or [],
-        "timestamp": _dt.datetime.utcnow().isoformat() + "Z",
+        "timestamp": _dt.datetime.now(_dt.UTC).isoformat() + "Z",
     }
     _memory_store.append(entry)
     return {"status": "ok"}

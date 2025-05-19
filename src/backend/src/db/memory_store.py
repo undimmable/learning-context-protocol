@@ -38,10 +38,13 @@ class MemoryStore:  # noqa: D101 – public API documented in class docstring
         """
 
         with session_scope() as session:
+            # Use datetime.now(UTC) instead of utcnow() to avoid deprecation warning
+            timestamp = _dt.datetime.now(_dt.UTC)
+            
             row = MemoryEntry(
                 text=entry["text"],
                 tags=list(entry.get("tags", [])),
-                timestamp=_dt.datetime.utcnow(),
+                timestamp=timestamp,
             )
             session.add(row)
 

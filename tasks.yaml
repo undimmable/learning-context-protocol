@@ -5,7 +5,7 @@ tasks:
        details:
          - The _memory_store is not initialized in the MCP Server. This is causing the server to crash when it tries to access the memory store.
          - The _memory_store should be initialized in the MCP Server before it is used.
-  2: [ In Progress ] Implementing the MCP Server memory from jsonl, to the postgres DB.
+  2: [ DONE ] Implementing the MCP Server memory from jsonl, to the postgres DB.
        details:
          - Use DB migrations to create the tables. Use SQLAlchemy as postgres provider and alembic for DB migrations.
          - Use the jsonl file to populate the tables with data.

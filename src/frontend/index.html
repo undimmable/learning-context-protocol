@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Gaze Tracker with Mood Context</title>
+    <script src="webgazer.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .panel {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+        .response-panel {
+            background-color: #f8f9fa;
+            min-height: 100px;
+        }
+        .status {
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #e2f0ff;
+            border-radius: 5px;
+        }
+        button {
+            padding: 8px 15px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        .feedback-buttons {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        .mood-selection {
+            margin: 15px 0;
+        }
+        .mood-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin: 10px 0;
+        }
+        .mood-button {
+            padding: 5px 10px;
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 15px;
+            cursor: pointer;
+        }
+        .mood-button.active {
+            background-color: #007bff;
+            color: white;
+        }
+        .slider-container {
+            margin: 10px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Telepathy: Eye Gaze & Mood Tracker</h1>
+
+    <div class="panel">
+        <h2>Eye Tracking Status</h2>
+        <p id="coords">Gaze coords appear here</p>
+        <p id="status">Data collection: Inactive</p>
+        <button id="startCollection">Start Data Collection</button>
+        <button id="stopCollection">Stop Data Collection</button>
+    </div>
+
+    <div class="panel">
+        <h2>Your Current Mood Context</h2>
+        <div class="mood-selection">
+            <p>How are you feeling right now?</p>
+            <div class="mood-buttons">
+                <span class="mood-button" data-mood="focused">Focused</span>
+                <span class="mood-button" data-mood="tired">Tired</span>
+                <span class="mood-button" data-mood="excited">Excited</span>
+                <span class="mood-button" data-mood="stressed">Stressed</span>
+                <span class="mood-button" data-mood="bored">Bored</span>
+                <span class="mood-button" data-mood="curious">Curious</span>
+                <span class="mood-button" data-mood="confused">Confused</span>
+                <span class="mood-button" data-mood="creative">Creative</span>
+            </div>
+        </div>
+
+        <div class="slider-container">
+            <label for="focusSlider">Focus Level: <span id="focusValue">50%</span></label>
+            <input type="range" id="focusSlider" min="0" max="100" value="50">
+        </div>
+
+        <div class="slider-container">
+            <label for="fatigueSlider">Fatigue Level: <span id="fatigueValue">30%</span></label>
+            <input type="range" id="fatigueSlider" min="0" max="100" value="30">
+        </div>
+
+        <div>
+            <label for="activityInput">What are you doing?</label>
+            <input type="text" id="activityInput" placeholder="e.g., Reading, Coding, Browsing">
+            <button id="updateContext">Update Context</button>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>Inferred States</h2>
+        <p id="inferredMood">Current mood: Analyzing...</p>
+        <p id="inferredIntent">Intent: Waiting for data...</p>
+    </div>
+
+    <div class="panel">
+        <h2>Ask Telepathy</h2>
+        <input type="text" id="intentInput" placeholder="Enter your intent/question..." style="width: 80%; padding: 8px;">
+        <button id="submitIntent">Submit</button>
+
+        <div class="response-panel" id="responseOutput">
+            <p>Response will appear here...</p>
+        </div>
+
+        <div class="feedback-buttons" id="feedbackContainer" style="display: none;">
+            <p>Was this response helpful?</p>
+            <button data-rating="1">😞 Not at all</button>
+            <button data-rating="3">😐 Somewhat</button>
+            <button data-rating="5">😊 Very helpful</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let isCollecting = false;
+    let gazeData = [];
+    let currentExchangeId = null;
+    const BATCH_SIZE = 50; // Send data in batches
+
+    // DOM elements
+    const coordsEl = document.getElementById('coords');
+    const statusEl = document.getElementById('status');
+    const startBtn = document.getElementById('startCollection');
+    const stopBtn = document.getElementById('stopCollection');
+    const inferredMoodEl = document.getElementById('inferredMood');
+    const inferredIntentEl = document.getElementById('inferredIntent');
+    const focusSlider = document.getElementById('focusSlider');
+    const focusValue = document.getElementById('focusValue');
+    const fatigueSlider = document.getElementById('fatigueSlider');
+    const fatigueValue = document.getElementById('fatigueValue');
+    const activityInput = document.getElementById('activityInput');
+    const updateContextBtn = document.getElementById('updateContext');
+    const intentInput = document.getElementById('intentInput');
+    const submitIntentBtn = document.getElementById('submitIntent');
+    const responseOutput = document.getElementById('responseOutput');
+    const feedbackContainer = document.getElementById('feedbackContainer');
+
+    // Initialize mood buttons
+    document.querySelectorAll('.mood-button').forEach(button => {
+        button.addEventListener('click', function() {
+            // Remove active class from all buttons
+            document.querySelectorAll('.mood-button').forEach(b => b.classList.remove('active'));
+            // Add active class to clicked button
+            this.classList.add('active');
+        });
+    });
+
+    // Initialize sliders
+    focusSlider.addEventListener('input', function() {
+        focusValue.textContent = this.value + '%';
+    });
+
+    fatigueSlider.addEventListener('input', function() {
+        fatigueValue.textContent = this.value + '%';
+    });
+
+    function sendGazeData() {
+        if (gazeData.length === 0) return;
+
+        fetch('/collect_gaze_data', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ gazeData: gazeData })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Success:', data);
+
+            // Update inferred state if available
+            if (data.inferred_mood) {
+                inferredMoodEl.textContent = `Current mood: ${data.inferred_mood}`;
+            }
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+        });
+
+        // Clear the batch after sending
+        gazeData = [];
+    }
+
+    function updateContext() {
+        // Get selected mood
+        const activeMoodEl = document.querySelector('.mood-button.active');
+        const mood = activeMoodEl ? activeMoodEl.getAttribute('data-mood') : null;
+
+        // Get slider values
+        const focusLevel = parseFloat(focusSlider.value) / 100;
+        const fatigueLevel = parseFloat(fatigueSlider.value) / 100;
+
+        // Get activity
+        const activity = activityInput.value.trim();
+
+        // Prepare data
+        const contextData = {};
+        if (mood) contextData.mood = mood;
+        if (focusLevel) contextData.focus_level = focusLevel;
+        if (fatigueLevel) contextData.fatigue_level = fatigueLevel;
+        if (activity) contextData.activity = activity;
+
+        // Send to server
+        fetch('/update_context', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(contextData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Context updated:', data);
+            alert('Context updated successfully!');
+        })
+        .catch((error) => {
+            console.error('Error updating context:', error);
+        });
+    }
+
+    function submitIntent() {
+        const intent = intentInput.value.trim();
+        if (!intent) return;
+
+        // Prepare data
+        const data = {
+            intent: intent,
+            certainty: 0.8, // Default value, could be adjusted
+            urgency: 0.5,   // Default value, could be adjusted
+            include_mood: true
+        };
+
+        // Show loading state
+        responseOutput.innerHTML = '<p>Thinking...</p>';
+        feedbackContainer.style.display = 'none';
+
+        // Send to server
+        fetch('/run_agent', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Response:', data);
+
+            // Store the exchange ID for feedback
+            currentExchangeId = data.exchange_id;
+
+            // Format and display the response
+            let responseHTML = '';
+            if (data.result.plan) {
+                responseHTML += `<strong>Plan:</strong> ${data.result.plan}<br><br>`;
+            }
+            if (data.result.state) {
+                responseHTML += `<strong>State:</strong> ${data.result.state}<br><br>`;
+            }
+            if (data.result.note) {
+                responseHTML += `<strong>Note:</strong> ${data.result.note}`;
+            }
+
+            responseOutput.innerHTML = responseHTML;
+
+            // Show feedback options
+            feedbackContainer.style.display = 'block';
+        })
+        .catch((error) => {
+            console.error('Error submitting intent:', error);
+            responseOutput.innerHTML = '<p>Error: Could not process your request.</p>';
+        });
+    }
+
+    function provideFeedback(rating) {
+        if (!currentExchangeId) return;
+
+        fetch('/provide_feedback', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                exchange_id: currentExchangeId,
+                rating: rating,
+                original_prompt: intentInput.value.trim(),
+                original_response: responseOutput.innerHTML
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Feedback provided:', data);
+            feedbackContainer.style.display = 'none';
+            alert('Thank you for your feedback!');
+        })
+        .catch((error) => {
+            console.error('Error providing feedback:', error);
+        });
+    }
+
+    // Send window size to server
+    function updateWindowSize() {
+        fetch('/set_window_size', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                width: window.innerWidth,
+                height: window.innerHeight
+            })
+        });
+    }
+
+    // Set up event listeners
+    window.onload = async function () {
+        // Update window size
+        updateWindowSize();
+        window.addEventListener('resize', updateWindowSize);
+
+        // Initialize WebGazer
+        await webgazer.setRegression('ridge') // more stable
+            .setGazeListener((data, elapsedTime) => {
+                if (data == null) return;
+
+                const gazePoint = {
+                    x: data.x,
+                    y: data.y,
+                    timestamp: elapsedTime
+                };
+
+                coordsEl.textContent =
+                    `x: ${data.x.toFixed(2)}, y: ${data.y.toFixed(2)} at ${elapsedTime} ms`;
+
+                if (isCollecting) {
+                    gazeData.push(gazePoint);
+
+                    // Send data in batches
+                    if (gazeData.length >= BATCH_SIZE) {
+                        sendGazeData();
+                    }
+                }
+            }).begin();
+
+        webgazer.showPredictionPoints(true); // visual dots
+
+        // Event listeners for buttons
+        startBtn.addEventListener('click', () => {
+            isCollecting = true;
+            statusEl.textContent = 'Data collection: Active';
+        });
+
+        stopBtn.addEventListener('click', () => {
+            isCollecting = false;
+            statusEl.textContent = 'Data collection: Inactive';
+
+            // Send any remaining data
+            if (gazeData.length > 0) {
+                sendGazeData();
+            }
+        });
+
+        updateContextBtn.addEventListener('click', updateContext);
+
+        submitIntentBtn.addEventListener('click', submitIntent);
+
+        // Set up feedback buttons
+        document.querySelectorAll('#feedbackContainer button').forEach(button => {
+            button.addEventListener('click', function() {
+                const rating = parseInt(this.getAttribute('data-rating'));
+                provideFeedback(rating);
+            });
+        });
+    };
+</script>
+</body>
+</html>
