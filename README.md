@@ -21,6 +21,10 @@ Ultimately, the goal is not purely utility — it is **transformation** for both
     - [Tech Stack](#tech-stack)
     - [Current State](#current-state)
     - [Goals](#goals)
+    - [Project Documentation](#project-documentation)
+    - [Implemented Features](#implemented-features)
+        - [Model Context Protocol (MCP) Server](#model-context-protocol-mcp-server)
+        - [PostgreSQL Memory Store](#postgresql-memory-store)
     - [Next Steps](#next-steps)
     - [Installation](#installation)
     - [Usage](#usage)
@@ -41,7 +45,7 @@ Ultimately, the goal is not purely utility — it is **transformation** for both
 - **Backend**: Python (Flask)
 - **Frontend**: HTML/JavaScript (WebGazer.js)
 - **Machine Learning**: FLAN-T5 model for emotional state inference.
-- **Data Storage**: JSONL for structured, lightweight storage.
+- **Data Storage**: PostgreSQL database with SQLAlchemy ORM and Alembic for migrations (previously JSONL).
 
 ## Current State
 
@@ -51,6 +55,8 @@ Ultimately, the goal is not purely utility — it is **transformation** for both
 - Infers and visualizes emotional states by combining multiple data modalities.
 - Processes user intent and mood context to generate empathetic responses.
 - Supports **continual learning** from every interaction while adapting its responses dynamically.
+- **Model Context Protocol (MCP) Server**: Provides a centralized service for managing context and memory in AGI-human interactions.
+- **PostgreSQL Memory Store**: Implements persistent storage for memory entries using PostgreSQL database, enabling efficient retrieval and management of contextual information.
 
 ### Key Highlights:
 
@@ -68,6 +74,38 @@ Ultimately, the goal is not purely utility — it is **transformation** for both
     - Use outputs and experiences to protect and enhance biological and digital ecosystems.
 4. **Holistic Understanding**:
     - Develop connections between emotional, physical, and computational components in user interaction.
+
+## Project Documentation
+
+The project includes several documentation files that provide detailed information about various aspects of the system:
+
+- **[Integration-Driven Development](integration-driven-development.md)**: Describes the development methodology focused on integrating subjective experience through documentation, user stories, implementation, and reflection.
+- **[Executable Task Lifecycle](executable-task-lifecycle.md)**: Outlines the structured approach to managing tasks within the Learning Context Protocol for AGI-human collaboration.
+- **[Available Tools and Providers](available-tools-and-providers.md)**: Lists the various providers that are planned or in progress for the system.
+- **[Reflexive Cognitive Interface](reflexive-cognitive-interface.md)**: Describes a complex cognitive architecture designed for the system.
+- **[Reasoning Provider](reasoning-provider.md)**: Explains the role of the Reasoning Provider as an execution copilot that helps with planning execution.
+
+## Implemented Features
+
+### Model Context Protocol (MCP) Server
+
+The Model Context Protocol Server is a central component of the Learning Context Protocol system that manages the context and memory for AGI-human interactions. It provides a standardized interface for storing, retrieving, and managing contextual information that is essential for meaningful and empathetic communication.
+
+Key features of the MCP Server include:
+- **Memory Management**: Stores and retrieves memory entries that capture the context of interactions.
+- **Context Awareness**: Maintains awareness of the current context to ensure relevant responses.
+- **Integration with Other Components**: Interfaces with other providers like the Reasoning Provider to enhance the overall system capabilities.
+
+### PostgreSQL Memory Store
+
+The system has been upgraded from using JSONL files for memory storage to a robust PostgreSQL database implementation. This migration provides several benefits:
+
+- **Improved Scalability**: Better handling of large volumes of memory entries.
+- **Enhanced Query Capabilities**: More sophisticated querying and filtering of memory data.
+- **Data Integrity**: Stronger guarantees for data consistency and reliability.
+- **Migration Support**: Uses Alembic for database migrations, making it easier to evolve the database schema over time.
+
+The implementation uses SQLAlchemy as the ORM (Object-Relational Mapping) layer, providing a Pythonic interface to the database and abstracting away the complexities of SQL.
 
 ## Next Steps
 
