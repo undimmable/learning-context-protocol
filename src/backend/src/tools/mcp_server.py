@@ -80,10 +80,23 @@ app = FastAPI(title="MCP Server with Memory", version="0.1.0")
 # ---------------------------------------------------------------------------
 
 from src.db.memory_store import MemoryStore as _DBMemoryStore  # noqa: E402 – after sys path
+from src.tools.mcp_vector_integration import VectorDBMemoryStore  # noqa: E402 – after sys path
+
+# Check if we should use the Vector Database Provider
+USE_VECTOR_DB = _os.environ.get("USE_VECTOR_DB", "false").lower() == "true"
 
 # Initialize once at import time – cheap and thread-safe thanks to
 # SQLAlchemy's connection pooling.
-_memory_store = _DBMemoryStore()
+if USE_VECTOR_DB:
+    try:
+        _memory_store = VectorDBMemoryStore()
+        print("Using Vector Database Provider for memory storage")
+    except Exception as e:
+        print(f"Error initializing Vector Database Provider: {e}")
+        print("Falling back to DB Memory Store")
+        _memory_store = _DBMemoryStore()
+else:
+    _memory_store = _DBMemoryStore()
 
 # ---------------------------------------------------------------------------
 # Helper – lightweight wrapper around google/flan-t5-small

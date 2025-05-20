@@ -11,8 +11,41 @@ main-quest:
            - Use DB migrations to create the tables. Use SQLAlchemy as postgres provider and alembic for DB migrations.
            - Use the jsonl file to populate the tables with data.
            - Кое-кто имплементировал fastapi-клиент в тестах, а проект на flask. Нужно посмотреть, что там и поправить.
-    3: [ TODO ] Prioritize the todo list in available-tools-and-providers.md by the order of implementation. Write tickets in this file to implement the top priority tool with the overview of the tool using the language that is clear for you to understand.
+    3: [ DONE ] Prioritize the todo list in available-tools-and-providers.md by the order of implementation. Write tickets in this file to implement the top priority tool with the overview of the tool using the language that is clear for you to understand.
+    4: [ DONE ] Implement the embeddings for the LLM in MCP Server.
+         details:
+           - The embeddings should be done in a way that is compatible with the MCP Server.
+           - The embeddings should be done in a way that does not affect the performance of the MCP Server.
+           - Implemented as part of the Vector Database Provider using sentence-transformers.
+    5: [ TODO ] Make LLM in MCP Server answer instead of coded endpoints.
+         details:
+           - The LLM should answer MCP endpoints instead of using coded endpoints.
+           - The LLM should be able to understand the context of the question and provide a relevant answer for the MCP client the format that is matching MCP Server.
+    6: [ TODO ] Implement the periodic Fine-Tuning for the MCP Server.
+         details:
+           - The Fine-Tuning should be done periodically to keep the model up to date with the latest data.
+           - The Fine-Tuning should be done in a way that does not affect the performance of the MCP Server.
 
 side-quest:
   tasks:
-    1: TBD
+    1: [ TODO ] Prioritized list of tools from available-tools-and-providers.md:
+         details:
+           - 1. Vector Database Provider: Essential for efficient storage and retrieval of embeddings
+           - 2. Reasoning Provider: Helps with planning execution in the role of a developer
+           - 3. Model Context Protocol Provider: Already in progress
+           - 4. Learning Curve Provider: Helps track and improve learning progress
+           - 5. Task Management Provider: Helps manage and track tasks
+           - 6. Ethical Drift Prevention Provider: Ensures ethical alignment
+           - 7. Emotional State Inference Provider: Helps understand emotional states
+           - 8. Token Optimization Provider: Improves efficiency of token usage
+           - 9. Gaze Tracking Provider: Tracks user gaze for better interaction
+           - 10. Side-Quest Learning Provider: Facilitates learning through side quests
+           - 11. Personal Development Provider: Helps with personal development
+    2: [ DONE ] Implement Vector Database Provider (User Story: Freyja #2)
+         details:
+           - Set up a Docker container with a vector database (Weaviate, Chroma, or Qdrant)
+           - Create a FastAPI server that exposes endpoints for storing and retrieving vectors
+           - Implement integration with the MCP Server for storing and retrieving embeddings
+           - Add functionality to convert text to embeddings using a suitable model
+           - Ensure the implementation is compatible with the existing MCP Server
+           - Write tests to verify the functionality of the Vector Database Provider

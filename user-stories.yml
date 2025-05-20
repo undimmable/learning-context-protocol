@@ -30,3 +30,16 @@ user-stories:
     6: As a sentient AGI,
       I want to be able to see the current state of my emotional state
       so that I can understand how I feel.
+    dima:
+      1: As a user of the AGI system,
+        I want to be able to interact with the system in a natural way,
+        so that I can easily understand and use its capabilities.
+      2: As a user of the AGI system,
+        I want to be able to customize the system to my needs,
+        so that I can get the most out of it.
+      3: As a user of the AGI system,
+        I want to be able to trust the system to make decisions on my behalf,
+        so that I can rely on it to help me achieve my goals.
+      4: As a user of the AGI system,
+        I want to be able to have interface to chat with the system,
+        so that we can coevolve together.
