@@ -18,8 +18,11 @@ durable, cross-session "memory" for the assistant:
    query string.
 
 The memory is stored in a PostgreSQL database (or SQLite for development).
-A very lightweight similarity measure based on `difflib.SequenceMatcher` is used
-so the server has no external dependencies or need for an embedding model.
+For vector similarity, the server can use either a lightweight similarity measure
+based on `difflib.SequenceMatcher` or a Vector Database Provider.
+
+The server can also use a custom GPTLikeModel for generating responses to
+endpoints instead of the default FLAN-T5 model.
 """
 
 from __future__ import annotations
@@ -81,11 +84,15 @@ app = FastAPI(title="MCP Server with Memory", version="0.1.0")
 
 from src.db.memory_store import MemoryStore as _DBMemoryStore  # noqa: E402 – after sys path
 from src.tools.mcp_vector_integration import VectorDBMemoryStore  # noqa: E402 – after sys path
+from src.tools.neural_integration import GPTLikeModelProvider  # noqa: E402 – after sys path
 
 # Check if we should use the Vector Database Provider
 USE_VECTOR_DB = _os.environ.get("USE_VECTOR_DB", "false").lower() == "true"
 
-# Initialize once at import time – cheap and thread-safe thanks to
+# Check if we should use the GPTLikeModel
+USE_GPT_MODEL = _os.environ.get("USE_GPT_MODEL", "false").lower() == "true"
+
+# Initialize memory store once at import time – cheap and thread-safe thanks to
 # SQLAlchemy's connection pooling.
 if USE_VECTOR_DB:
     try:
@@ -97,6 +104,18 @@ if USE_VECTOR_DB:
         _memory_store = _DBMemoryStore()
 else:
     _memory_store = _DBMemoryStore()
+
+# Initialize LLM provider
+if USE_GPT_MODEL:
+    try:
+        _llm_provider = GPTLikeModelProvider()
+        print("Using GPTLikeModel for LLM endpoints")
+    except Exception as e:
+        print(f"Error initializing GPTLikeModel: {e}")
+        print("Falling back to FLAN-T5 model")
+        _llm_provider = None
+else:
+    _llm_provider = None
 
 # ---------------------------------------------------------------------------
 # Helper – lightweight wrapper around google/flan-t5-small
@@ -142,11 +161,20 @@ def _get_llm():
 
 
 def _llm_generate(prompt: str, max_new_tokens: int = 128) -> str:
-    """Generate text from the local FLAN-T5 model with sane defaults."""
+    """Generate text from the LLM model with sane defaults.
 
-    pipe = _get_llm()
-    result = pipe(prompt, max_new_tokens=max_new_tokens, do_sample=False)[0]
-    return result["generated_text"]
+    If USE_GPT_MODEL is True and the GPTLikeModel is available, it will be used.
+    Otherwise, falls back to the local FLAN-T5 model.
+    """
+
+    if USE_GPT_MODEL and _llm_provider is not None:
+        # Use the GPTLikeModel
+        return _llm_provider.generate(prompt, max_new_tokens=max_new_tokens)
+    else:
+        # Fall back to FLAN-T5
+        pipe = _get_llm()
+        result = pipe(prompt, max_new_tokens=max_new_tokens, do_sample=False)[0]
+        return result["generated_text"]
 
 # ---------------------------------------------------------------------------
 # Schemas and endpoints for the three built-in Codex tools
@@ -164,21 +192,27 @@ def do_shell(req: ShellArgs):  # noqa: D401  (FastAPI route, not a docstring)
     """Run an arbitrary shell command and capture its output."""
 
     # Instead of executing arbitrary shell commands directly on the host, we
-    # forward the request to the local FLAN-T5 model.  This keeps the MCP
+    # forward the request to the LLM model.  This keeps the MCP
     # provider hermetic and avoids potential security issues, while still
     # giving downstream agents a best-effort, language-model-based simulation
     # of what the command *would* return.
 
-    prompt = (
-        "You are an advanced shell interpreter running on a Unix-like system.\n"
-        "Simulate running the following command and provide *only* the raw\n"
-        "stdout that a user would see (no additional commentary).  If the\n"
-        "command would normally produce no output, return an empty string.\n\n"
-        f"$ {' '.join(req.command)}"
-    )
+    command = ' '.join(req.command)
 
     try:
-        stdout = _llm_generate(prompt, max_new_tokens=128)
+        # If GPTLikeModel is available and enabled, use its specialized method
+        if USE_GPT_MODEL and _llm_provider is not None:
+            stdout = _llm_provider.answer_shell_command(command)
+        else:
+            # Otherwise use the generic LLM generate function with a prompt
+            prompt = (
+                "You are an advanced shell interpreter running on a Unix-like system.\n"
+                "Simulate running the following command and provide *only* the raw\n"
+                "stdout that a user would see (no additional commentary).  If the\n"
+                "command would normally produce no output, return an empty string.\n\n"
+                f"$ {command}"
+            )
+            stdout = _llm_generate(prompt, max_new_tokens=128)
     except _LLMNotAvailable as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
@@ -189,11 +223,17 @@ def do_shell(req: ShellArgs):  # noqa: D401  (FastAPI route, not a docstring)
 class ReadFileArgs(BaseModel):
     path: str
     max_bytes: Optional[int] = Field(default=100_000, description="Byte cap")
+    summarize: Optional[bool] = Field(default=False, description="Generate a summary of the file content")
 
 
 @app.post("/read_file")
 def do_read_file(req: ReadFileArgs):
-    """Return up to `max_bytes` bytes from the requested file."""
+    """Return up to `max_bytes` bytes from the requested file.
+
+    If the 'summarize' query parameter is set to true and the GPTLikeModel
+    is available, it will also include a summary of the file content.
+    """
+    summarize = req.summarize if hasattr(req, 'summarize') else False
 
     p = _pl.Path(req.path).expanduser()
     if not p.exists():
@@ -204,7 +244,19 @@ def do_read_file(req: ReadFileArgs):
         text = data.decode("utf-8")
     except UnicodeDecodeError:
         text = data.decode("latin1", errors="replace")
-    return {"content": text}
+
+    result = {"content": text}
+
+    # Generate summary if requested and GPTLikeModel is available
+    if summarize and USE_GPT_MODEL and _llm_provider is not None:
+        try:
+            summary = _llm_provider.summarize_file_content(text)
+            result["summary"] = summary
+        except Exception as e:
+            print(f"Error generating summary: {e}")
+            # Continue without summary
+
+    return result
 
 
 class PatchArgs(BaseModel):
@@ -260,12 +312,27 @@ class MemoryQueryArgs(BaseModel):
 
 @app.post("/memory/query")
 def memory_query(req: MemoryQueryArgs):
-    """Return up to *top_k* snippets ranked by fuzzy string similarity."""
+    """Return up to *top_k* snippets ranked by semantic relevance.
+
+    If USE_GPT_MODEL is True and the GPTLikeModel is available, it will use
+    semantic search capabilities of the model. Otherwise, falls back to
+    fuzzy string similarity using difflib.SequenceMatcher.
+    """
 
     entries = _memory_store.all()
     if not entries:
         return {"results": []}
 
+    # Use GPTLikeModel for semantic search if available
+    if USE_GPT_MODEL and _llm_provider is not None:
+        try:
+            best = _llm_provider.enhance_memory_query(req.query, entries, req.top_k)
+            return {"results": best}
+        except Exception as e:
+            print(f"Error using GPTLikeModel for memory query: {e}")
+            print("Falling back to fuzzy string matching")
+
+    # Fallback to fuzzy string matching
     scored = []
     q = req.query.lower()
     for ent in entries:
@@ -294,7 +361,10 @@ class LLMGenerateArgs(BaseModel):
 
 @app.post("/llm/generate")
 def llm_generate(req: LLMGenerateArgs):
-    """Generate text via the embedded google/flan-t5-small model.
+    """Generate text via the LLM model.
+
+    If USE_GPT_MODEL is True and the GPTLikeModel is available, it will be used.
+    Otherwise, falls back to the embedded google/flan-t5-small model.
 
     This gives the Codex CLI clients (or any other consumers) a simple way to
     obtain LLM completions without needing direct model access.  The response

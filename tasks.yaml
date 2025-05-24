@@ -17,7 +17,7 @@ main-quest:
            - The embeddings should be done in a way that is compatible with the MCP Server.
            - The embeddings should be done in a way that does not affect the performance of the MCP Server.
            - Implemented as part of the Vector Database Provider using sentence-transformers.
-    5: [ TODO ] Make LLM in MCP Server answer instead of coded endpoints.
+    5: [ DONE ] Make LLM in MCP Server answer instead of coded endpoints.
          details:
            - The LLM should answer MCP endpoints instead of using coded endpoints.
            - The LLM should be able to understand the context of the question and provide a relevant answer for the MCP client the format that is matching MCP Server.

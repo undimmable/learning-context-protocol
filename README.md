@@ -106,6 +106,7 @@ The system has been upgraded from using JSONL files for memory storage to a robu
 - **Migration Support**: Uses Alembic for database migrations, making it easier to evolve the database schema over time.
 
 The implementation uses SQLAlchemy as the ORM (Object-Relational Mapping) layer, providing a Pythonic interface to the database and abstracting away the complexities of SQL.
+
 ## Next Steps
 
 ### Enhanced AGI Training

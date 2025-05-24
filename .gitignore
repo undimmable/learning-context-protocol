@@ -176,4 +176,5 @@ cython_debug/
 .idea/
 images/
 context/
-src/backend/app.db
+app.db
+response.md
