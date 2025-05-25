@@ -1,7 +1,7 @@
 from typing import override
 
 from src.util.util import split_lines
-from serialization.tokenizer import TypedTokenizerSpecification, TypedToken, TypedTokenizationError
+from src.serialization.tokenizer import TypedTokenizerSpecification, TypedToken, TypedTokenizationError
 
 
 class AIResponseToken(TypedTokenizerSpecification):

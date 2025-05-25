@@ -7,6 +7,7 @@ from src.serialization.ai_response_tokenizer import (
     UnspecifiedAIResponseTypedToken,
     TypedTokenizationError,
     TypedAIResponse, TypedToken,
+    AIResponseTypedToken,
 )
 
 

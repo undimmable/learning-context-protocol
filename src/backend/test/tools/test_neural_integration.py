@@ -71,8 +71,11 @@ class TestGPTLikeModelProvider(unittest.TestCase):
             vocab_size=1000,
             embed_dim=64,
             hidden_dim=128,
-            depth=2,
+            num_layers=2,
             max_seq_len=50,
+            use_attention=True,
+            num_heads=8,
+            dropout=0.1,
             alpha=0.01
         )
 
@@ -81,8 +84,11 @@ class TestGPTLikeModelProvider(unittest.TestCase):
             vocab_size=1000,
             embed_dim=64,
             hidden_dim=128,
-            depth=2,
+            num_layers=2,
             max_seq_len=50,
+            use_attention=True,
+            num_heads=8,
+            dropout=0.1,
             alpha=0.01
         )
 

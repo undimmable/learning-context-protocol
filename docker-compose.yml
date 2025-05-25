@@ -34,5 +34,47 @@ services:
       timeout: 5s
       retries: 5
 
+  backend:
+    build:
+      context: ./src/backend
+      dockerfile: Dockerfile
+    ports:
+      - "7821:7821"  # MCP server
+      - "4321:4321"  # Vector DB Provider (using mock in tests)
+      - "3210:3210"  # Reasoning Provider
+    environment:
+      - VECTOR_DB_URL=http://weaviate:8080
+      - CODEX_MCP_URL=http://backend:7821
+      - REASONING_PROVIDER_URL=http://backend:3210
+      - USE_MOCK_WEAVIATE=false
+      - DOCKER_ENV=true
+    volumes:
+      - ./src/backend:/app
+    depends_on:
+      - weaviate
+      - t2v-transformers
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7821/llm/generate"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  tests:
+    build:
+      context: ./src/backend
+      dockerfile: Dockerfile
+    command: bash -c "sleep 10 && python test_all_apis.py"
+    environment:
+      - VECTOR_DB_URL=http://backend:4321
+      - CODEX_MCP_URL=http://backend:7821
+      - REASONING_PROVIDER_URL=http://backend:3210
+      - USE_MOCK_WEAVIATE=true
+      - DOCKER_ENV=true
+      - RUN_TESTS=true
+    volumes:
+      - ./src/backend:/app
+    depends_on:
+      - backend
+
 volumes:
   weaviate_data:

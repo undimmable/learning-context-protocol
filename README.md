@@ -144,6 +144,70 @@ python src/backend/main.py serve
 
 This will launch the **real-time tracking dashboard**, allowing users to engage, monitor, and provide feedback.
 
+## Local GitHub Actions Testing with Act
+
+This repository includes a script to run GitHub Actions workflows locally using [act](https://github.com/nektos/act), a tool that allows you to run your GitHub Actions locally in Docker containers.
+
+### Prerequisites
+
+- [Docker](https://www.docker.com/get-started) must be installed and running
+- [act](https://github.com/nektos/act) must be installed:
+  - On macOS: `brew install act`
+  - On Linux: `curl https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash`
+  - For other platforms, see the [act GitHub repository](https://github.com/nektos/act)
+
+### Running GitHub Actions Locally
+
+1. Make sure you have Docker running
+2. From the repository root, run:
+
+```bash
+cd src/backend
+./act.sh
+```
+
+This will execute all workflows defined in the `.github/workflows` directory.
+
+### Common Options
+
+- Run a specific workflow:
+  ```bash
+  cd src/backend
+  ./act.sh -W .github/workflows/python-tests.yaml
+  ```
+
+- Run a specific job:
+  ```bash
+  cd src/backend
+  ./act.sh -j test
+  ```
+
+- Run with a specific event (e.g., pull_request):
+  ```bash
+  cd src/backend
+  ./act.sh pull_request
+  ```
+
+- List all actions without running them:
+  ```bash
+  cd src/backend
+  ./act.sh -l
+  ```
+
+### Troubleshooting
+
+If you encounter any issues:
+
+1. Make sure Docker is running
+2. Check that act is installed correctly
+3. Try running with the `-v` flag for verbose output:
+   ```bash
+   cd src/backend
+   ./act.sh -v
+   ```
+
+For more information, see the [act documentation](https://github.com/nektos/act).
+
 ## Contributing
 
 We welcome contributions from the **AI community**, researchers, developers, and anyone inspired by the mission of creating empathetic, life-preserving AGI systems. To contribute:

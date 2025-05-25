@@ -50,38 +50,160 @@ app = FastAPI(title="Vector Database Provider", version="0.1.0")
 # Default Weaviate URL (can be overridden with environment variable)
 WEAVIATE_URL = os.environ.get("WEAVIATE_URL", "http://localhost:4321")
 
+# Check if we should use a mock Weaviate client for testing
+USE_MOCK_WEAVIATE = os.environ.get("USE_MOCK_WEAVIATE", "false").lower() == "true"
+
+# Mock Weaviate client for testing
+class MockWeaviateClient:
+    """A mock Weaviate client for testing."""
+
+    def __init__(self):
+        """Initialize the mock client."""
+        self.data = []
+        self.schema = MockSchema()
+
+    def is_ready(self):
+        """Check if the client is ready."""
+        return True
+
+    def data_object(self):
+        """Get the data object API."""
+        return MockDataObject(self.data)
+
+    def query(self):
+        """Get the query API."""
+        return MockQuery(self.data)
+
+class MockSchema:
+    """A mock schema API."""
+
+    def contains(self, schema):
+        """Check if the schema contains a class."""
+        return False
+
+    def create(self, schema):
+        """Create a schema."""
+        pass
+
+class MockDataObject:
+    """A mock data object API."""
+
+    def __init__(self, data):
+        """Initialize the mock data object API."""
+        self.data = data
+
+    def create(self, data_object, class_name, uuid, vector=None):
+        """Create a data object."""
+        self.data.append({
+            "uuid": uuid,
+            "class": class_name,
+            "properties": data_object,
+            "vector": vector
+        })
+
+class MockQuery:
+    """A mock query API."""
+
+    def __init__(self, data):
+        """Initialize the mock query API."""
+        self.data = data
+        self._class = None
+        self._properties = []
+        self._vector = None
+        self._text = None
+        self._where = None
+        self._limit = 10
+
+    def get(self, class_name, properties):
+        """Get objects of a class."""
+        self._class = class_name
+        self._properties = properties
+        return self
+
+    def with_near_vector(self, vector):
+        """Add a vector search."""
+        self._vector = vector
+        return self
+
+    def with_near_text(self, text):
+        """Add a text search."""
+        self._text = text
+        return self
+
+    def with_where(self, where):
+        """Add a where filter."""
+        self._where = where
+        return self
+
+    def with_limit(self, limit):
+        """Set the limit."""
+        self._limit = limit
+        return self
+
+    def do(self):
+        """Execute the query."""
+        # Filter by class
+        results = [item for item in self.data if item["class"] == self._class]
+
+        # Apply text search if specified
+        if self._text:
+            query = self._text["concepts"][0].lower()
+            results = [item for item in results if query in item["properties"]["text"].lower()]
+
+        # Apply tag filter if specified
+        if self._where and self._where["operator"] == "ContainsAny" and self._where["path"] == ["tags"]:
+            filter_tags = self._where["valueString"]
+            results = [item for item in results if any(tag in filter_tags for tag in item["properties"]["tags"])]
+
+        # Limit results
+        results = results[:self._limit]
+
+        # Format results
+        formatted_results = []
+        for item in results:
+            formatted_item = {}
+            for prop in self._properties:
+                formatted_item[prop] = item["properties"][prop]
+            formatted_results.append(formatted_item)
+
+        return {"data": {"Get": {self._class: formatted_results}}}
+
 # Initialize the Weaviate client
 try:
-    client = weaviate.Client(WEAVIATE_URL)
-    # Create the schema if it doesn't exist
-    if not client.schema.contains({"classes": [{"class": "TextSnippet"}]}):
-        schema = {
-            "classes": [
-                {
-                    "class": "TextSnippet",
-                    "description": "A text snippet with its embedding",
-                    "vectorizer": "text2vec-transformers",
-                    "properties": [
-                        {
-                            "name": "text",
-                            "dataType": ["text"],
-                            "description": "The text content",
-                        },
-                        {
-                            "name": "tags",
-                            "dataType": ["string[]"],
-                            "description": "Optional tags for the text",
-                        },
-                        {
-                            "name": "timestamp",
-                            "dataType": ["string"],
-                            "description": "When the snippet was created",
-                        },
-                    ],
-                }
-            ]
-        }
-        client.schema.create(schema)
+    if USE_MOCK_WEAVIATE:
+        print("Using mock Weaviate client for testing")
+        client = MockWeaviateClient()
+    else:
+        client = weaviate.Client(WEAVIATE_URL)
+        # Create the schema if it doesn't exist
+        if not client.schema.contains({"classes": [{"class": "TextSnippet"}]}):
+            schema = {
+                "classes": [
+                    {
+                        "class": "TextSnippet",
+                        "description": "A text snippet with its embedding",
+                        "vectorizer": "text2vec-transformers",
+                        "properties": [
+                            {
+                                "name": "text",
+                                "dataType": ["text"],
+                                "description": "The text content",
+                            },
+                            {
+                                "name": "tags",
+                                "dataType": ["string[]"],
+                                "description": "Optional tags for the text",
+                            },
+                            {
+                                "name": "timestamp",
+                                "dataType": ["string"],
+                                "description": "When the snippet was created",
+                            },
+                        ],
+                    }
+                ]
+            }
+            client.schema.create(schema)
 except Exception as e:
     print(f"Error connecting to Weaviate: {e}")
     # We'll continue and let the health endpoint report the error

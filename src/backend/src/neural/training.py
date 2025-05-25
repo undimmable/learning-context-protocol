@@ -6,8 +6,8 @@ import torch.optim as optim
 from typing import List, Dict, Any, Optional, Union
 from torch.utils.data import DataLoader, Dataset
 
-from neural.gpt import GPTLikeModel
-from neural.leaky_awareness_unit import LeakyAwarenessUnit
+from src.neural.gpt import GPTLikeModel
+from src.neural.leaky_awareness_unit import LeakyAwarenessUnit
 
 try:
     from transformers import AutoTokenizer

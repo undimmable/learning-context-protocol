@@ -15,20 +15,24 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.12
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
 
-      - name: Install dependencies
+      - name: Run unit tests
         run: |
-          # install pipenv
-          cd ${{ github.workspace }}/src/backend
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          # Navigate to the backend directory
+          cd ${{ github.workspace }}/src/backend || cd .
+          docker build -t backend-tests .
+          docker run --rm backend-tests python -m unittest discover -v
 
-      - name: Run all tests
+      - name: Run integration tests with Docker Compose
         run: |
-          # discover and run all unittest tests
-          cd ${{ github.workspace }}/src/backend
-          python -m unittest discover -v
+          # Install curl for healthchecks
+          sudo apt-get update
+          sudo apt-get install -y curl
+
+          # Navigate to the repository root directory
+          cd ${{ github.workspace }}
+
+          # Run tests using docker-compose
+          docker-compose up --build --exit-code-from tests tests
