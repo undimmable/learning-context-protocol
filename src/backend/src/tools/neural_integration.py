@@ -58,7 +58,7 @@ class GPTLikeModelProvider:
         vocab_size: int = VOCAB_SIZE,
         embed_dim: int = EMBED_DIM,
         hidden_dim: int = HIDDEN_DIM,
-        depth: int = DEPTH,
+        num_layers: int = DEPTH,
         max_seq_len: int = MAX_SEQ_LEN,
         alpha: float = ALPHA,
         use_attention: bool = USE_ATTENTION,
@@ -73,7 +73,7 @@ class GPTLikeModelProvider:
             vocab_size: The size of the vocabulary.
             embed_dim: The dimension of the embeddings.
             hidden_dim: The dimension of the hidden layers.
-            depth: The number of layers.
+            num_layers: The number of layers.
             max_seq_len: The maximum sequence length.
             alpha: The alpha parameter for the LeakyAwarenessUnit.
             use_attention: Whether to use attention mechanisms.
@@ -95,7 +95,7 @@ class GPTLikeModelProvider:
             vocab_size=vocab_size,
             embed_dim=embed_dim,
             hidden_dim=hidden_dim,
-            num_layers=depth,
+            num_layers=num_layers,
             max_seq_len=max_seq_len,
             use_attention=use_attention,
             num_heads=num_heads,
