@@ -68,3 +68,18 @@ There's a reminder for this role in the file [ProjectManagement](../project-mana
 
 ## Tickets
 Until we have implemented the Task Management Provider, tickets are to be taken from and created in [Tickets](../tasks.yaml).
+
+
+## Agent Roles Switching
+ 1. Product Manager Artifacts:
+   - new user-requests in product-managenent.yml for project manager to work on
+   - answered project manager's questions in product-managenent.yml
+ 2. Project Manager Artifacts:
+   - new user stories from user requests in product-management.yml
+   - questions to the user requests in the product-management.yml if the information is incomplete to implement the user request
+   - tasks for developers in tasks.yml from user stories
+ 3. Developer Artifacts:
+   - Implemented tasks from tasks.yml
+
+## Expressive Logging For Agentic Debugging
+The system should provide expressive logging capabilities to facilitate agentic debugging and introspection. This is outlined in the file [ExpressiveLoggingForAgenticDebugging](../expressive-logging-for-agentic-debugging.md).

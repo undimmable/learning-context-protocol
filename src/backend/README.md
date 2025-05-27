@@ -26,6 +26,8 @@ This repository contains a set of APIs for the LainGPT system, including:
   - pydantic
   - sentence-transformers
   - requests
+  - patch-ng
+  - httpx
 
 ## Running the Tests
 
